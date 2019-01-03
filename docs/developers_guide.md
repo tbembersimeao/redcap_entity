@@ -1,5 +1,5 @@
 
-# REDCap Entity Documentation
+# REDCap Entity Developers Guide
 
 ## Index
 1. Intro and overview

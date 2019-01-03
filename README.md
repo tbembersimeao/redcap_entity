@@ -3,249 +3,38 @@ Provides features to design, store and manage custom entities in REDCap.
 
 ## Introduction
 
-Let's say your team needs to create and manage additional content in REDCap that cannot be expressed as regular data entries (e.g. protocols, drugs, sites, prescriptions, papers, etc).
+REDCap Entity is a software development library that simplifies the development of REDCap External Modules by providing tools to design, store, manage, enter, view and edit data entities needed by a REDCap Module. This module is a _dependency_ for other modules such as UF CTS-IT's [REDCap Project Ownership](https://github.com/ctsit/project_ownership) and [REDCap OnCore Client](https://github.com/ctsit/redcap_oncore_client). 
 
-In this case, a few tasks need to be addressed like:
+A module might need to manage a data type that does not exist in core REDCap. For example, [REDCap Project Ownership](https://github.com/ctsit/project_ownership) introduces the concept of a _project owner_.  This is a person who acts as owner/custodian for a project. These ownership details have to be stored, retrieved, displayed and edited. In some cases a large list of owners and related facts need to be displayed, filtered, and sorted.  REDCap Entity provides a set of functions a REDCap module developer can use to define the things to be stored as well as how they should be displayed.
 
-- Define your custom content storage (e.g. create a SQL table)
+REDCap Entity helps a developer define these details:
+
+- The custom content storage. (e.g. it will create a SQL table)
 - Implement a form to add/edit your content
 - Implement a page that lists your content
-- Implement features to help you navigate through the list like a pager, filters, etc 
+- Implement features to help you navigate through the list like a pager, filters, etc.
+
+REDCap Entity allows a moderate amount of JSON about 30 lines of code to add functionality that that looks like this to a REDCap Module:
+
+<img style="float: right;" src="docs/images/department_entity_example.png">
 
 ## Prerequisites
 
 - REDCap >= 8.7.0
 
-## Installation
+## Easy Installation
+- Obtain this module from the Consortium [REDCap Repo] (https://redcap.vanderbilt.edu/consortium/modules/index.php) from the REDCap Control Center.
 
-- Clone this repo into `<redcap-root>/modules/redcap_entity_api_v<version_number>` or download it from [REDCap Repo](https://redcap.vanderbilt.edu/consortium/modules/).
-- Go to **Control Center > Manage External Modules** and enable REDCap Entity.
+## Manual Installation
+- Clone this repo into `<redcap-root>/modules/redcap_entity_v0.0.0`.
+- Go to **Control Center > External Modules** and enable REDCap Entity. The module will be enabled globally.
 
-## Creating an entity type
+## Managing Entities
 
-### 1. Create your external module
+REDCap Entity will present an Entity DB Manager in the REDCap Control Panel. It gives an admin the ability to create or delete the data managed by REDCap Entity on a per-entity basis.
 
-REDCap Entity does not create entities by itself. It requires a **child module** to define the structure of your entities.
+<img style="float: right;" src="docs/images/entity_db_manager.png">
 
-So let's call our example module "REDCap Protocols".
+## Developing with REDCap Entity
 
-config.json
-
-```json
-{
-    "name": "REDCap Protocols",
-}
-```
-
-Obs.: if you are not familiar with External Modules development, check this documentation.
-
-### 2. Implement redcap_entity_types()
-
-Your entity type is defined on `redcap_entity_types` hook. There, you specify:
-
-- a label (e.g. "Protocol")
-- the properties of your entity (e.g. title, status, PI, study site)
-- the permitted operations (e.g. add, edit, delete)
-
-Here we are going to define 2 entities, Protocol and Study site.
-
-ExternalModule.php
-
-```php
-<?php
-
-    function redcap_entity_types() {
-    	$types = [];
-    
-        $types['study_site'] = [
-            'label' => 'Study site',
-            'label_plural' => 'Study sites',
-            'class' => [
-                'name' => 'REDCapCar\Entity\StudySite',
-                'path' => 'classes/entity/StudySite.php',
-            ],
-            'properties' => [
-                'name' => [
-                    'name' => 'name',
-                    'type' => 'text',
-                    'required' => true,
-                ],
-                'project_id' => [
-                    'name' => 'Project ID',
-                    'type' => 'project',
-                    'required' => true,
-                ],
-            ],
-            'special_keys' => [
-                'label' => 'name',
-            ],
-            'operations' => ['create', 'update', 'delete'],
-        ];
-    
-		$types['protocol'] = [
-            'label' => 'Protocol',
-            'label_plural' => 'Protocols',
-            'class' => [
-                'name' => 'REDCapCar\Entity\Protocol',
-                'path' => 'classes/entity/Protocol.php',
-            ],
-            'properties' => [
-                'title' => [
-                    'name' => 'Title',
-                    'type' => 'text',
-                    'required' => true,
-                ],
-                'status' => [
-                    'name' => 'Status',
-                    'type' => 'text',
-                    'required' => true,
-                ],
-                'brand' => [
-                    'name' => 'Brand',
-                    'type' => 'entity_reference',
-                    'entity_type' => 'car_brand',
-                ],
-                'color' => [
-                    'name' => 'Color',
-                    'type' => 'text',
-                    'choices' => [
-                    	'black' => 'Black',
-                    	'blue' => 'Blue',
-                    	'green' => 'Green',
-                    	'red' => 'Red',
-                    	'silver' => 'Silver',
-                    	'white' => 'White',
-                    ],
-                ],
-                'pi' => [
-                    'name' => 'PI',
-                    'type' => 'user',
-                ],
-                'driver' => [
-                    'name' => 'Driver',
-                    'type' => 'user',
-                ],
-                'project_id' => [
-                    'name' => 'Project ID',
-                    'type' => 'project',
-                    'required' => true,
-                ],
-            ],
-            'special_keys' => [
-                'label' => 'title',
-            ],
-            'operations' => ['create', 'update', 'delete'],
-            'bulk_operations' => [
-                'remove_driver' => [
-                    'label' => 'Remove driver',
-                    'method' => 'removeDriver',
-                    'messages' => [
-                        'confirmation' => 'The drivers will be removed. This action cannot be undone.',
-                        'success' => 'The drivers have been removed successfully',
-                    ],
-                ],
-            ],
-        ];
-
-        return $types;
-    }
-
-```
-
-
-
-##### label
-
-Defines the label of your entity. It is used on entity lists.
-
-
-
-##### label_plural
-
-##### class
-
-##### properties
-
-Types:
-
-- `text`
-- `int`
-- `date`
-- `json`
-- `blob`
-- `project`
-- `user`
-- `entity_reference`: other entities can be referenced via this type, which requires an extra key - `entity_type`, defining the target entity type.
-
-Dropdowns:
-
-##### special_keys
-
-- `label`
-- `project`
-- `author`
-
-##### operations
-
-##### bulk_operations
-
-
-
-
-
-### 2. Entity class
-
-A class is required to instantiate your entity. All properties defined on `hook_entity_types` must be defined
-
-
-
-classes/entity/Car.php
-
-```php
-<?php
-    
-namespace REDCapCar\Entity;
-
-use REDCapEntity\Entity;
-    
-class Car extends Entity {
-    protected $model;
-    protected $year;
-    protected $brand;
-    protected $color;
-    protected $driver;
-    protected $project_id;
-}
-```
-
-
-
-
-
-## Creating a list of entities
-
-
-
-## Customizing the entity form
-
-
-
-## Using the API
-
-
-
-
-
-### CRUD
-
-#### Create
-
-#### Retrieve
-
-#### Update
-
-#### Delete
-
-
-
-### Query
+A complete development guide for using REDCap Entity in your REDCap External Module is available at [REDCap Entity Developers Guide](docs/developers_guide.md).
